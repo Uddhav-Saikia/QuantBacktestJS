@@ -1,16 +1,50 @@
+# Dependencies
 node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment variables
 .env
-.DS_Store
+.env.local
+.env.production
+.env.development
+backend/.env
+frontend/.env
+
+# Build outputs
+build/
+dist/
+frontend/build/
+frontend/dist/
+frontend/.vite/
+backend/dist/
+
+# Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-build/
-dist/
+lerna-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+
+# Testing
 coverage/
 .nyc_output/
+
+# Vercel
+.vercel
+
+# Optional
 frontend/.env.example
+backend/.env.example

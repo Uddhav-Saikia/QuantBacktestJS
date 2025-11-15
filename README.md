@@ -97,6 +97,8 @@ This will:
 
 ## 🚀 Running the Application
 
+### Development Mode
+
 ### Start Backend Server
 ```bash
 cd backend
@@ -110,6 +112,19 @@ cd frontend
 npm run dev
 # Application will open on http://localhost:3000
 ```
+
+### Production Deployment
+
+This application is ready to deploy to **Vercel**:
+
+- **Quick Guide**: See [QUICK_DEPLOY.md](./QUICK_DEPLOY.md)
+- **Detailed Guide**: See [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+Deploy in 5 minutes:
+1. Push code to GitHub
+2. Connect to Vercel
+3. Add MongoDB Atlas connection string
+4. Deploy! 🎉
 
 ## 📖 Usage Guide
 
