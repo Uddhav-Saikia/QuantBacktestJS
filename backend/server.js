@@ -28,6 +28,7 @@ app.use((req, res, next) => {
 
 // MongoDB Connection with connection pooling for serverless
 let dbConnection = null;
+let isConnecting = false;
 
 const connectDB = async () => {
   try {
@@ -37,11 +38,24 @@ const connectDB = async () => {
       return dbConnection;
     }
 
+    // Prevent multiple simultaneous connection attempts
+    if (isConnecting) {
+      console.log('Connection attempt already in progress, waiting...');
+      // Wait for the existing connection attempt
+      while (isConnecting) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      return dbConnection;
+    }
+
+    isConnecting = true;
+
     const mongoUri = process.env.MONGODB_URI;
     if (!mongoUri) {
       throw new Error('MONGODB_URI environment variable is not set');
     }
 
+    console.log('Connecting to MongoDB...');
     dbConnection = await mongoose.connect(mongoUri, {
       maxPoolSize: 5,
       minPoolSize: 1,
@@ -50,17 +64,26 @@ const connectDB = async () => {
       family: 4 // Use IPv4, skip trying IPv6
     });
     console.log('MongoDB connected successfully');
+    isConnecting = false;
     return dbConnection;
   } catch (err) {
+    isConnecting = false;
     console.error('MongoDB connection error:', err.message);
     // Don't exit process in serverless environment
     if (process.env.NODE_ENV !== 'production') {
       process.exit(1);
     }
+    throw err; // Re-throw to handle in routes
   }
 };
 
-connectDB();
+// Store connectDB in app.locals for access in serverless function
+app.locals.connectDB = connectDB;
+
+// Connect for local development
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  connectDB();
+}
 
 // Routes
 const ohlcvRoutes = require('./routes/ohlcv');
@@ -72,12 +95,33 @@ app.use('/api/strategies', strategyRoutes);
 app.use('/api/backtest', backtestRoutes);
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Server is running',
-    timestamp: new Date().toISOString()
-  });
+app.get('/api/health', async (req, res) => {
+  try {
+    const mongoStatus = mongoose.connection.readyState;
+    const statusMap = {
+      0: 'disconnected',
+      1: 'connected',
+      2: 'connecting',
+      3: 'disconnecting'
+    };
+    
+    res.json({ 
+      status: mongoStatus === 1 ? 'OK' : 'WARNING',
+      message: 'Server is running',
+      mongodb: statusMap[mongoStatus] || 'unknown',
+      timestamp: new Date().toISOString(),
+      env: {
+        hasMongoUri: !!process.env.MONGODB_URI,
+        nodeEnv: process.env.NODE_ENV
+      }
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 'ERROR',
+      message: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Root endpoint
