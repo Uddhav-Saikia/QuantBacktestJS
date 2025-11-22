@@ -31,15 +31,13 @@ function Navigation() {
         <li><Link to="/strategies">Strategies</Link></li>
         <li><Link to="/backtest">Run Backtest</Link></li>
         <li><Link to="/results">Results</Link></li>
-        {user ? (
+        {user && (
           <li className="user-menu">
             <Link to="/profile" className="user-link">
               <span className="user-avatar">{user.username.charAt(0).toUpperCase()}</span>
               <span>{user.username}</span>
             </Link>
           </li>
-        ) : (
-          <li><Link to="/login" className="login-btn">Login</Link></li>
         )}
       </ul>
     </nav>

@@ -955,3 +955,19 @@ select.form-control {
     transform: rotate(360deg);
   }
 }
+
+/* Footer link buttons */
+.footer-link-btn {
+  background: none;
+  border: none;
+  color: #58a6ff;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  padding: 0;
+  text-decoration: none;
+}
+
+.footer-link-btn:hover {
+  text-decoration: underline;
+}

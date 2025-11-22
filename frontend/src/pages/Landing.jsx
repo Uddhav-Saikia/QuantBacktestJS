@@ -1,7 +1,18 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { isAuthenticated } from '../services/api';
 
 function Landing() {
+  const navigate = useNavigate();
+
+  const handleProtectedNavigation = (path) => {
+    if (!isAuthenticated()) {
+      navigate('/login');
+    } else {
+      navigate(path);
+    }
+  };
+
   return (
     <div className="landing-page">
       <section className="hero">
@@ -16,12 +27,18 @@ function Landing() {
             and optimize your approach before risking real capital.
           </p>
           <div className="hero-buttons">
-            <Link to="/dashboard" className="btn btn-primary btn-large">
+            <button 
+              onClick={() => handleProtectedNavigation('/dashboard')} 
+              className="btn btn-primary btn-large"
+            >
               Get Started
-            </Link>
-            <Link to="/strategies" className="btn btn-secondary btn-large">
+            </button>
+            <button 
+              onClick={() => handleProtectedNavigation('/strategies')} 
+              className="btn btn-secondary btn-large"
+            >
               View Strategies
-            </Link>
+            </button>
           </div>
         </div>
         <div className="hero-image">
@@ -111,9 +128,12 @@ function Landing() {
           </div>
         </div>
         <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-          <Link to="/strategies" className="btn btn-primary">
+          <button 
+            onClick={() => handleProtectedNavigation('/strategies')} 
+            className="btn btn-primary"
+          >
             Explore All Strategies →
-          </Link>
+          </button>
         </div>
       </section>
 
@@ -121,9 +141,12 @@ function Landing() {
         <div className="cta-content">
           <h2>Ready to Optimize Your Trading?</h2>
           <p>Join traders who backtest before they invest</p>
-          <Link to="/backtest" className="btn btn-primary btn-large">
+          <button 
+            onClick={() => handleProtectedNavigation('/backtest')} 
+            className="btn btn-primary btn-large"
+          >
             Run Your First Backtest
-          </Link>
+          </button>
         </div>
       </section>
 
@@ -134,9 +157,19 @@ function Landing() {
             GitHub
           </a>
           {' • '}
-          <Link to="/dashboard">Dashboard</Link>
+          <button 
+            onClick={() => handleProtectedNavigation('/dashboard')} 
+            className="footer-link-btn"
+          >
+            Dashboard
+          </button>
           {' • '}
-          <Link to="/strategies">Strategies</Link>
+          <button 
+            onClick={() => handleProtectedNavigation('/strategies')} 
+            className="footer-link-btn"
+          >
+            Strategies
+          </button>
         </p>
       </footer>
     </div>
