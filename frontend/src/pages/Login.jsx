@@ -97,9 +97,12 @@ function Login() {
           <span>OR</span>
         </div>
 
-        <Link to="/" className="btn btn-secondary btn-block">
+        <button 
+          onClick={() => navigate('/dashboard')} 
+          className="btn btn-secondary btn-block"
+        >
           Continue as Guest
-        </Link>
+        </button>
       </div>
     </div>
   );
