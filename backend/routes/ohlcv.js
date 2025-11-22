@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const OHLCV = require('../models/OHLCV');
+const { optionalAuth } = require('../middleware/auth');
+const { ohlcvQueryValidation } = require('../middleware/validators');
 
 // Get OHLCV data for a symbol within a date range
-router.get('/:symbol', async (req, res) => {
+router.get('/:symbol', optionalAuth, ohlcvQueryValidation, async (req, res) => {
   try {
     const { symbol } = req.params;
     const { startDate, endDate, limit = 1000 } = req.query;

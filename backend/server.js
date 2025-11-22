@@ -2,14 +2,44 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// Security: Helmet - sets various HTTP headers
+app.use(helmet());
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true
+}));
+
+// Rate limiting - prevents brute force attacks
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting to all routes
+app.use('/api/', limiter);
+
+// Stricter rate limit for auth routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login/register attempts per 15 minutes
+  message: 'Too many authentication attempts, please try again later.',
+  skipSuccessfulRequests: true, // Don't count successful requests
+});
+
+// Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -86,10 +116,15 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
 }
 
 // Routes
+const authRoutes = require('./routes/auth');
 const ohlcvRoutes = require('./routes/ohlcv');
 const strategyRoutes = require('./routes/strategy');
 const backtestRoutes = require('./routes/backtest');
 
+// Public routes (with stricter rate limiting for auth)
+app.use('/api/auth', authLimiter, authRoutes);
+
+// Protected routes (require authentication)
 app.use('/api/ohlcv', ohlcvRoutes);
 app.use('/api/strategies', strategyRoutes);
 app.use('/api/backtest', backtestRoutes);

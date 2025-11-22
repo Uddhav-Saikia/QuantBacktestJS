@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const Strategy = require('../models/Strategy');
+const { authenticate, optionalAuth } = require('../middleware/auth');
+const { strategyValidation, mongoIdValidation } = require('../middleware/validators');
 
 // Get all strategies
-router.get('/', async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const strategies = await Strategy.find().sort({ createdAt: -1 });
     res.json({
@@ -20,7 +22,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get a single strategy
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, mongoIdValidation, async (req, res) => {
   try {
     const strategy = await Strategy.findById(req.params.id);
     
@@ -43,8 +45,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create a new strategy
-router.post('/', async (req, res) => {
+// Create a new strategy (requires authentication)
+router.post('/', authenticate, strategyValidation, async (req, res) => {
   try {
     const { name, description, code, parameters } = req.body;
     
@@ -69,8 +71,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update a strategy
-router.put('/:id', async (req, res) => {
+// Update a strategy (requires authentication)
+router.put('/:id', authenticate, mongoIdValidation, strategyValidation, async (req, res) => {
   try {
     const { name, description, code, parameters } = req.body;
     
@@ -105,8 +107,8 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete a strategy
-router.delete('/:id', async (req, res) => {
+// Delete a strategy (requires authentication)
+router.delete('/:id', authenticate, mongoIdValidation, async (req, res) => {
   try {
     const strategy = await Strategy.findByIdAndDelete(req.params.id);
     

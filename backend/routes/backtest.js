@@ -1,13 +1,16 @@
 const express = require('express');
 const router = express.Router();
+const { VM } = require('vm2');
 const BacktestResult = require('../models/BacktestResult');
 const OHLCV = require('../models/OHLCV');
 const Strategy = require('../models/Strategy');
 const BacktestEngine = require('../engine/BacktestEngine');
 const defaultStrategies = require('../strategies/defaultStrategies');
+const { authenticate, optionalAuth } = require('../middleware/auth');
+const { backtestValidation, mongoIdValidation } = require('../middleware/validators');
 
 // Run a backtest
-router.post('/run', async (req, res) => {
+router.post('/run', optionalAuth, backtestValidation, async (req, res) => {
   try {
     const {
       strategyId,
@@ -68,13 +71,44 @@ router.post('/run', async (req, res) => {
       }
       
       strategyName = strategy.name;
-      // Evaluate the strategy code (in production, use a sandbox)
+      
+      // SECURITY FIX: Use VM2 instead of eval() to safely execute strategy code
       try {
-        strategyFunction = eval(`(${strategy.code})`);
-      } catch (evalError) {
+        // Create isolated VM with timeout and limited sandbox
+        const vm = new VM({
+          timeout: 5000, // 5 second timeout for strategy execution
+          sandbox: {}, // Empty sandbox - no access to Node.js modules
+          eval: false, // Disable eval
+          wasm: false, // Disable WebAssembly
+        });
+
+        // Wrap the strategy code in a safe function wrapper
+        const safeCode = `
+          (function(historicalData, params) {
+            ${strategy.code}
+          })
+        `;
+
+        // Execute the code in the VM and get the function
+        strategyFunction = vm.run(safeCode);
+        
+        // Test the function with empty data to ensure it's valid
+        try {
+          const testResult = strategyFunction([], parameters);
+          if (testResult !== null && !['BUY', 'SELL', 'HOLD'].includes(testResult)) {
+            throw new Error('Strategy must return "BUY", "SELL", "HOLD", or null');
+          }
+        } catch (testError) {
+          return res.status(400).json({
+            success: false,
+            error: 'Strategy validation failed: ' + testError.message
+          });
+        }
+        
+      } catch (vmError) {
         return res.status(400).json({
           success: false,
-          error: 'Invalid strategy code: ' + evalError.message
+          error: 'Invalid or unsafe strategy code: ' + vmError.message
         });
       }
     } else {
@@ -133,7 +167,7 @@ router.post('/run', async (req, res) => {
 });
 
 // Get all backtest results
-router.get('/results', async (req, res) => {
+router.get('/results', optionalAuth, async (req, res) => {
   try {
     const { limit = 20, sortBy = 'executedAt', order = 'desc' } = req.query;
     
@@ -156,7 +190,7 @@ router.get('/results', async (req, res) => {
 });
 
 // Get a specific backtest result
-router.get('/results/:id', async (req, res) => {
+router.get('/results/:id', optionalAuth, mongoIdValidation, async (req, res) => {
   try {
     const result = await BacktestResult.findById(req.params.id);
     
@@ -180,7 +214,7 @@ router.get('/results/:id', async (req, res) => {
 });
 
 // Delete a backtest result
-router.delete('/results/:id', async (req, res) => {
+router.delete('/results/:id', authenticate, mongoIdValidation, async (req, res) => {
   try {
     const result = await BacktestResult.findByIdAndDelete(req.params.id);
     
