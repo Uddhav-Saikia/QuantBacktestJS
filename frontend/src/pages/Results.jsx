@@ -39,6 +39,17 @@ function Results() {
       }
       
       setResults(response.data.data);
+      
+      // Auto-load the first result details
+      if (response.data.data.length > 0) {
+        const firstResultId = response.data.data[0]._id;
+        try {
+          const detailResponse = await getBacktestResult(firstResultId);
+          setSelectedResult(detailResponse.data.data);
+        } catch (error) {
+          console.error('Error loading first result details:', error);
+        }
+      }
     } catch (error) {
       console.error('Error loading results:', error);
       setError(error.message || 'Failed to load results. API may be unreachable.');
