@@ -14,3 +14,4 @@ dist/
 coverage/
 .nyc_output/
 frontend/.env.example
+backend/.env.example
