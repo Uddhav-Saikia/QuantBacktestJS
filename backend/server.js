@@ -13,16 +13,46 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// MongoDB Connection
+// Add timeout handling for serverless (50 seconds for Vercel Pro)
+app.use((req, res, next) => {
+  req.setTimeout(50000);
+  res.setTimeout(50000);
+  next();
+});
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
+// MongoDB Connection with connection pooling for serverless
+let dbConnection = null;
+
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+    // Reuse existing connection in serverless environment
+    if (dbConnection && dbConnection.connection.readyState === 1) {
+      console.log('Reusing existing MongoDB connection');
+      return dbConnection;
+    }
+
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      throw new Error('MONGODB_URI environment variable is not set');
+    }
+
+    dbConnection = await mongoose.connect(mongoUri, {
+      maxPoolSize: 5,
+      minPoolSize: 1,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      family: 4 // Use IPv4, skip trying IPv6
     });
     console.log('MongoDB connected successfully');
+    return dbConnection;
   } catch (err) {
-    console.error('MongoDB connection error:', err);
+    console.error('MongoDB connection error:', err.message);
     // Don't exit process in serverless environment
     if (process.env.NODE_ENV !== 'production') {
       process.exit(1);

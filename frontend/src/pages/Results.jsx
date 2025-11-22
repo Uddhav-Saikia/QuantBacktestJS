@@ -21,6 +21,7 @@ function Results() {
   const [results, setResults] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
@@ -30,11 +31,18 @@ function Results() {
   const loadResults = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await getBacktestResults({ limit: 50 });
+      
+      if (!response.data.data) {
+        throw new Error('Invalid response format from API');
+      }
+      
       setResults(response.data.data);
     } catch (error) {
-      toast.error('Error loading results');
       console.error('Error loading results:', error);
+      setError(error.message || 'Failed to load results. API may be unreachable.');
+      toast.error('Error loading results');
     } finally {
       setLoading(false);
     }
@@ -80,6 +88,22 @@ function Results() {
     return (
       <div className="loading">
         <div className="spinner"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-message">
+        <h2>Error Loading Results</h2>
+        <p>{error}</p>
+        <p>Please check that:</p>
+        <ul>
+          <li>The backend API is running</li>
+          <li>MongoDB is connected</li>
+          <li>Your internet connection is stable</li>
+        </ul>
+        <button onClick={loadResults}>Retry</button>
       </div>
     );
   }

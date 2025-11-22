@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 function Dashboard() {
   const [recentResults, setRecentResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     totalBacktests: 0,
     avgReturn: 0,
@@ -19,7 +20,13 @@ function Dashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await getBacktestResults({ limit: 10 });
+      
+      if (!response.data.data) {
+        throw new Error('Invalid response format from API');
+      }
+      
       const results = response.data.data;
       setRecentResults(results);
 
@@ -40,6 +47,7 @@ function Dashboard() {
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
+      setError(error.message || 'Failed to load dashboard data. API may be unreachable.');
     } finally {
       setLoading(false);
     }
@@ -49,6 +57,22 @@ function Dashboard() {
     return (
       <div className="loading">
         <div className="spinner"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-message">
+        <h2>Error Loading Dashboard</h2>
+        <p>{error}</p>
+        <p>Please check that:</p>
+        <ul>
+          <li>The backend API is running</li>
+          <li>MongoDB is connected</li>
+          <li>Your internet connection is stable</li>
+        </ul>
+        <button onClick={loadDashboardData}>Retry</button>
       </div>
     );
   }

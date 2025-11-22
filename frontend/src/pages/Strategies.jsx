@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 function Strategies() {
   const [strategies, setStrategies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -20,11 +21,18 @@ function Strategies() {
   const loadStrategies = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await getStrategies();
+      
+      if (!response.data.data) {
+        throw new Error('Invalid response format from API');
+      }
+      
       setStrategies(response.data.data);
     } catch (error) {
-      toast.error('Error loading strategies');
       console.error('Error loading strategies:', error);
+      setError(error.message || 'Failed to load strategies. API may be unreachable.');
+      toast.error('Error loading strategies');
     } finally {
       setLoading(false);
     }
@@ -96,6 +104,22 @@ function Strategies() {
     return (
       <div className="loading">
         <div className="spinner"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-message">
+        <h2>Error Loading Strategies</h2>
+        <p>{error}</p>
+        <p>Please check that:</p>
+        <ul>
+          <li>The backend API is running</li>
+          <li>MongoDB is connected</li>
+          <li>Your internet connection is stable</li>
+        </ul>
+        <button onClick={loadStrategies}>Retry</button>
       </div>
     );
   }
